@@ -250,6 +250,9 @@ function MacroControls() {
         <Slider label="Temporal Phase" value={parseFloat(timeOfDay.toFixed(1))} min={0} max={24} step={0.1} unit="h" onChange={setTimeOfDay} color="#f59e0b" />
         <Slider label="Atmos. Turbulence" value={Math.round(weatherIntensity * 100)} min={0} max={100} step={1} unit="%" onChange={(v) => setWeatherIntensity(v / 100)} color="var(--accent-secondary)" />
         
+        <div style={{ height: '1px', background: 'var(--border-ui)', margin: '1.5rem 0 1rem 0' }} />
+        <TransactionCenter />
+        
         <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
            <button
              onClick={toggleAutoTrade}
@@ -538,6 +541,100 @@ export function HUD() {
       <TradeLog />
       <ViewSwitcher />
       <ZoomHint />
+    </div>
+  )
+}
+function TransactionCenter() {
+  const { tradingState, requestEnergy, finalizePurchase, nodes, matchedNodeId, userNodeId } = useSimStore()
+  const matchedNode = nodes.find(n => n.id === matchedNodeId)
+
+  return (
+    <div className="transaction-center outfit" style={{ marginTop: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <span style={{ fontSize: '0.8rem', opacity: 0.6, letterSpacing: '0.05em' }}>TRANSACTION_CENTER</span>
+        <div style={{ 
+          width: 8, height: 8, borderRadius: '50%', 
+          background: tradingState === 'idle' ? '#4ade80' : '#f59e0b',
+          boxShadow: `0 0 10px ${tradingState === 'idle' ? '#4ade80' : '#f59e0b'}`
+        }} />
+      </div>
+
+      {!userNodeId ? (
+        <p style={{ fontSize: '0.85rem', opacity: 0.5, fontStyle: 'italic' }}>Please add a node to trade.</p>
+      ) : (
+        <>
+          {tradingState === 'idle' && (
+            <button 
+              onClick={requestEnergy}
+              className="action-btn primary" 
+              style={{ width: '100%', padding: '0.75rem', fontSize: '0.9rem', fontWeight: 600 }}
+            >
+              REQUEST ENERGY SIGNALS
+            </button>
+          )}
+
+          {tradingState === 'requesting' && (
+            <div className="status-box">
+              <div className="loader-line" />
+              <p style={{ color: 'var(--accent-secondary)' }}>Scanning Grid for Surplus...</p>
+            </div>
+          )}
+
+          {tradingState === 'matched' && matchedNode && (
+            <div className="match-card glass-panel" style={{ padding: '0.8rem', marginBottom: '0.5rem', borderLeft: '3px solid var(--accent-primary)' }}>
+              <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>MATCH FOUND</div>
+              <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{matchedNode.label}</div>
+              <div style={{ fontSize: '0.8rem', marginTop: '0.4rem' }}>Rate: ₹4.20/kW • Avail: 75kW</div>
+              <button 
+                onClick={finalizePurchase}
+                className="action-btn success" 
+                style={{ width: '100%', marginTop: '0.8rem', background: 'var(--accent-primary)', color: '#000' }}
+              >
+                FINALIZE PURCHASE
+              </button>
+            </div>
+          )}
+
+          {tradingState === 'transferring' && (
+            <div className="status-box">
+              <div className="pulse-dot" />
+              <p style={{ color: 'var(--accent-primary)' }}>Transferring Packets...</p>
+            </div>
+          )}
+        </>
+      )}
+
+      <style>{`
+        .status-box {
+          background: rgba(0,0,0,0.3);
+          padding: 1rem;
+          border-radius: 8px;
+          text-align: center;
+          font-size: 0.85rem;
+        }
+        .loader-line {
+          height: 2px;
+          background: var(--accent-secondary);
+          width: 0%;
+          animation: load 1.5s infinite linear;
+        }
+        @keyframes load {
+          0% { width: 0%; }
+          100% { width: 100%; }
+        }
+        .pulse-dot {
+          width: 12px;
+          height: 12px;
+          background: var(--accent-primary);
+          border-radius: 50%;
+          margin: 0 auto 0.5rem;
+          animation: pulse 0.8s infinite alternate;
+        }
+        @keyframes pulse {
+          from { transform: scale(0.8); opacity: 0.5; }
+          to { transform: scale(1.2); opacity: 1; }
+        }
+      `}</style>
     </div>
   )
 }

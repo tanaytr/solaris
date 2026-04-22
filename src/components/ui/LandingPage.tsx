@@ -33,9 +33,9 @@ export const LandingPage: React.FC = () => {
         }
         .breathe { animation: breathe 5s ease-in-out infinite; }
       `}</style>
-      
+
       {Array.from({ length: 30 }).map((_, i) => (
-        <div 
+        <div
           key={i} className="rain-drop"
           style={{
             left: `${Math.random() * 100}%`,
@@ -57,32 +57,32 @@ export const LandingPage: React.FC = () => {
 
       {/* Main Content */}
       <div style={{ zIndex: 10, textAlign: 'center', maxWidth: 900, padding: '0 2rem' }}>
-        <div className="outfit" style={{ 
+        <div className="outfit" style={{
           fontSize: '0.75rem', letterSpacing: '8px', opacity: 0.4, marginBottom: '2rem',
           textTransform: 'uppercase', fontWeight: 700
         }}>
           Autonomous Grid Management
         </div>
-        
-        <h1 className="breathe outfit" style={{ 
+
+        <h1 className="breathe outfit" style={{
           fontSize: 'clamp(4rem, 15vw, 9rem)', fontWeight: 900, letterSpacing: '-6px',
           lineHeight: 0.85, marginBottom: '2.5rem',
           background: 'linear-gradient(to bottom, var(--text-main) 40%, var(--accent-primary) 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.2))'
         }}>
-          SOLARIS
+          ENEREX
         </h1>
-        
-        <p className="outfit" style={{ 
-          fontSize: '1.25rem', maxWidth: 650, margin: '0 auto 5rem', 
-          lineHeight: '1.7', opacity: 0.6, fontWeight: 300 
+
+        <p className="outfit" style={{
+          fontSize: '1.25rem', maxWidth: 650, margin: '0 auto 5rem',
+          lineHeight: '1.7', opacity: 0.6, fontWeight: 300
         }}>
           Bridging the physical and transactional layers of renewable energy. High-frequency telemetry meets decentralized P2P liquidity.
         </p>
 
         <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button 
+          <button
             onClick={() => setCurrentView('experience')}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
@@ -103,8 +103,8 @@ export const LandingPage: React.FC = () => {
           >
             Enter EXPERIENCE
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setCurrentView('presentation')}
             style={{
               padding: '1.4rem 3.5rem',

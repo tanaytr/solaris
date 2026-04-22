@@ -64,6 +64,10 @@ interface SimStore {
   // Simulation Metrics
   weatherIntensity: number // 0-1 (0 = clear, 1 = storm)
   co2Offset: number // Total kg of CO2 saved
+  
+  // Trading Flow
+  tradingState: 'idle' | 'requesting' | 'matched' | 'transferring'
+  matchedNodeId: string | null
 
   // Meso
   mesoComponents: MesoComponent[]
@@ -91,6 +95,8 @@ interface SimStore {
   toggleAutoTrade: () => void
   setLoggedIn: (val: boolean) => void
   setManualTradeMode: (val: boolean) => void
+  requestEnergy: () => void
+  finalizePurchase: () => void
   selectNode: (id: string | null) => void
   selectComponent: (id: string | null) => void
   addPacket: (packet: EnergyPacket) => void
@@ -171,6 +177,8 @@ export const useSimStore = create<SimStore>()(
       isLoggedIn: false,
       userNodeId: null,
       manualTradeMode: false,
+      tradingState: 'idle',
+      matchedNodeId: null,
 
       setCurrentView: (view) => set({ currentView: view }),
       setZoomLevel: (level) => set({ zoomLevel: level }),
@@ -218,7 +226,7 @@ export const useSimStore = create<SimStore>()(
           toId: buyer,
           amount,
           startTime: performance.now() / 1000,
-          duration: 2.5,
+          duration: 3.5, // Slower transfer for visibility
           color
         }
         get().addPacket(packet)
@@ -228,6 +236,66 @@ export const useSimStore = create<SimStore>()(
           gridEnergy: s.gridEnergy + amount * 0.1,
           xp: s.xp + Math.round(amount * 5) // Award XP for every trade
         }))
+      },
+
+      requestEnergy: () => {
+        const { userNodeId, nodes } = get()
+        if (!userNodeId) return
+
+        set({ tradingState: 'requesting' })
+        
+        // Visualize signal packets to all nodes
+        nodes.forEach(node => {
+          if (node.id === userNodeId) return
+          const packet: EnergyPacket = {
+            id: `signal_${packetId++}`,
+            fromId: userNodeId,
+            toId: node.id,
+            amount: 0,
+            startTime: performance.now() / 1000,
+            duration: 1.2,
+            color: '#0ea5e9' // Blue signal
+          }
+          get().addPacket(packet)
+        })
+
+        // Match after 2 seconds
+        setTimeout(() => {
+          const validSellers = nodes.filter(n => n.production > 0 && n.id !== userNodeId)
+          if (validSellers.length > 0) {
+            const seller = validSellers[Math.floor(Math.random() * validSellers.length)]
+            set({ tradingState: 'matched', matchedNodeId: seller.id })
+            
+            // Send response packet back to user
+            const packet: EnergyPacket = {
+                id: `response_${packetId++}`,
+                fromId: seller.id,
+                toId: userNodeId,
+                amount: 0,
+                startTime: performance.now() / 1000,
+                duration: 1.0,
+                color: '#f59e0b' // Amber response
+            }
+            get().addPacket(packet)
+          } else {
+            set({ tradingState: 'idle' })
+          }
+        }, 1500)
+      },
+
+      finalizePurchase: () => {
+        const { userNodeId, matchedNodeId, executeTrade } = get()
+        if (!userNodeId || !matchedNodeId) return
+
+        set({ tradingState: 'transferring' })
+        
+        // Execute the trade (this creates the energy packets)
+        executeTrade(matchedNodeId, userNodeId, 75, 4.2)
+
+        // Reset to idle after transfer completes
+        setTimeout(() => {
+          set({ tradingState: 'idle', matchedNodeId: null })
+        }, 4000)
       },
 
       awardXP: (amount) => set((s) => ({ xp: s.xp + amount })),
