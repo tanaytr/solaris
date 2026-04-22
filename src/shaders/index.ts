@@ -124,6 +124,8 @@ void main() {
 
 export const gridFragmentShader = `
 uniform float uTime;
+uniform vec3 uColor1;
+uniform vec3 uColor2;
 varying vec2 vUv;
 varying vec3 vPosition;
 
@@ -133,7 +135,7 @@ void main() {
   float gridAlpha = 1.0 - min(line, 1.0);
   
   float pulse = sin(uTime * 0.5 + vPosition.x * 0.3 + vPosition.z * 0.2) * 0.5 + 0.5;
-  vec3 gridColor = mix(vec3(0.0, 0.2, 0.15), vec3(0.0, 0.6, 0.4), pulse * gridAlpha);
+  vec3 gridColor = mix(uColor1, uColor2, pulse * gridAlpha);
   
   float dist = length(vPosition.xz) / 30.0;
   float fade = 1.0 - smoothstep(0.6, 1.0, dist);

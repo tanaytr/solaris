@@ -7,6 +7,15 @@
     grid-template-rows: 100px 1fr 100px;
     box-sizing: border-box; overflow: hidden; position: relative;
     transition: color 0.5s ease;
+    
+    /* PPT Design Tokens */
+    --ppt-navy: #1e3a8a;
+    --ppt-green: #15803d;
+    --ppt-red: #b91c1c;
+    --ppt-amber: #b45309;
+    --ppt-gray: #475569;
+    --ppt-light: #f8fafc;
+    --ppt-border: #e2e8f0;
 }
 
 /* HEADER & FOOTER HUD */
@@ -38,8 +47,15 @@
 /* MAIN CONTENT AREA */
 .pres-main { 
     grid-row: 2; display: flex; align-items: center; justify-content: center; 
-    z-index: 50; transition: all 0.4s ease-in-out; min-height: 0; padding: 0 4rem;
+    z-index: 50; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); min-height: 0; padding: 0 4rem;
     backdrop-filter: blur(8px);
+}
+
+.pres-main.enter {
+    opacity: 1; transform: translateY(0) scale(1);
+}
+.pres-main.exit {
+    opacity: 0; transform: translateY(-20px) scale(0.98);
 }
 
 .tech-slide {
@@ -108,3 +124,66 @@
 
 /* Code Block */
 .studio-code { background: #000; color: #0f0; padding: 2rem; border-radius: 12px; font-family: 'Space Mono', monospace; font-size: 0.85rem; border: 1px solid #333; }
+
+/* PPT SYNTHESIS CLASSES */
+
+.ppt-layout {
+    width: 100%; display: flex; flex-direction: column; gap: 2rem;
+    color: var(--text-main); text-align: left;
+}
+
+.ppt-header-line {
+    width: 100%; height: 3px; background: var(--ppt-green); margin-top: 1rem;
+    position: relative;
+}
+.ppt-header-line::before {
+    content: ''; position: absolute; left: 0; top: 0; width: 30%; height: 100%; background: var(--ppt-navy);
+}
+
+.ppt-grid-box {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;
+}
+
+.ppt-card {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border-ui);
+    padding: 2rem; border-radius: 4px; position: relative;
+    border-top: 5px solid var(--ppt-navy);
+}
+
+.ppt-card.problem { border-top-color: var(--ppt-red); background: rgba(185, 28, 28, 0.05); }
+.ppt-card.solution { border-top-color: var(--ppt-green); background: rgba(21, 128, 61, 0.05); }
+.ppt-card.pilot { border-top-color: var(--ppt-amber); background: rgba(180, 83, 9, 0.05); }
+
+.ppt-card h4 { 
+    font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 800; 
+    margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 1px;
+}
+
+.ppt-card.problem h4 { color: var(--ppt-red); }
+.ppt-card.solution h4 { color: var(--ppt-green); }
+.ppt-card.pilot h4 { color: var(--ppt-amber); }
+
+.ppt-card ul { list-style: none; padding: 0; margin: 0; }
+.ppt-card li { margin-bottom: 1rem; font-size: 1.05rem; line-height: 1.5; opacity: 0.9; }
+
+/* PPT Table */
+.ppt-table-container { background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid var(--border-ui); overflow: hidden; }
+.ppt-table { width: 100%; border-collapse: collapse; }
+.ppt-table th { background: var(--ppt-navy); color: #fff; padding: 1.2rem; text-align: left; font-size: 0.8rem; letter-spacing: 1px; }
+.ppt-table td { padding: 1.2rem; border-bottom: 1px solid var(--border-ui); font-size: 1rem; opacity: 0.8; }
+.ppt-table tr:last-child td { border-bottom: none; }
+
+/* Use Case / Personas */
+.persona-ring-group { display: flex; justify-content: space-around; align-items: center; gap: 4rem; margin-top: 3rem; }
+.persona-node { display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; }
+.persona-circle { 
+    width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--border-ui);
+    display: flex; align-items: center; justifyContent: center; font-size: 2rem;
+    font-weight: 800; color: var(--text-main); font-family: 'Outfit';
+}
+.persona-circle.producer { border-color: var(--ppt-green); color: var(--ppt-green); }
+.persona-circle.consumer { border-color: var(--ppt-navy); color: var(--ppt-navy); }
+.persona-circle.discom { border-color: var(--ppt-amber); color: var(--ppt-amber); }
+
+.persona-node span { font-weight: 900; font-size: 1.1rem; }
+.persona-node small { opacity: 0.5; font-family: 'Space Mono'; font-size: 0.8rem; }

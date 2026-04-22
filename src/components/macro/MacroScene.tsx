@@ -8,8 +8,12 @@ import { gridFragmentShader, gridVertexShader, lineFlowFragmentShader, lineFlowV
 // Ground grid
 function GridGround() {
   const matRef = useRef<THREE.ShaderMaterial>(null!)
-  const { weatherIntensity } = useSimStore()
+    const { weatherIntensity, theme } = useSimStore()
   
+  const colors = theme === 'dark' 
+    ? { c1: new THREE.Color(0.0, 0.2, 0.15), c2: new THREE.Color(0.0, 0.6, 0.4) }
+    : { c1: new THREE.Color(0.8, 0.9, 1.0), c2: new THREE.Color(0.4, 0.6, 0.8) }
+
   useFrame(({ clock }) => {
     if (matRef.current) matRef.current.uniforms.uTime.value = clock.elapsedTime
   })
@@ -21,7 +25,11 @@ function GridGround() {
         ref={matRef}
         vertexShader={gridVertexShader}
         fragmentShader={gridFragmentShader}
-        uniforms={{ uTime: { value: 0 } }}
+        uniforms={{ 
+            uTime: { value: 0 },
+            uColor1: { value: colors.c1 },
+            uColor2: { value: colors.c2 }
+        }}
         transparent
         depthWrite={false}
       />
@@ -120,11 +128,15 @@ function GridLines({ nodes }: { nodes: any[] }) {
         const pb = new THREE.Vector3(...nb.position)
         pa.y = 0.1; pb.y = 0.1
 
+        const { theme } = useSimStore()
+        const lineColor = theme === 'dark' ? "#0a4030" : "#cbd5e1"
+        const flowColor = theme === 'dark' ? "#00ffaa" : "#f59e0b"
+
         return (
           <group key={`${a}-${b}`}>
             <Line
               points={[pa, pb]}
-              color="#0a4030"
+              color={lineColor}
               lineWidth={1}
               transparent
               opacity={0.3}
@@ -137,14 +149,11 @@ function GridLines({ nodes }: { nodes: any[] }) {
                 fragmentShader={lineFlowFragmentShader}
                 uniforms={{
                   uTime: { value: 0 },
-                  uColor: { value: new THREE.Color('#00ffaa') },
+                  uColor: { value: new THREE.Color(flowColor) },
                   uSpeed: { value: 2.0 }
                 }}
                 transparent
                 depthWrite={false}
-                onBeforeCompile={(shader) => {
-                  shader.uniforms.uTime = { value: 0 }
-                }}
               />
             </mesh>
           </group>
@@ -154,11 +163,44 @@ function GridLines({ nodes }: { nodes: any[] }) {
   )
 }
 
+function NodeLevelBadge({ node }: { node: any }) {
+  if (node.level <= 1) return null
+  return (
+    <group position={[0, 3.2, 0]}>
+      <mesh>
+        <sphereGeometry args={[0.2, 16, 16]} />
+        <meshBasicMaterial color="#00ffaa" />
+      </mesh>
+      <Text position={[0, 0.4, 0]} fontSize={0.25} color="#00ffaa" fontWeight="900" anchorX="center">
+        LVL {node.level}
+      </Text>
+    </group>
+  )
+}
+
+function EliteGlow({ level }: { level: number }) {
+  if (level < 5) return null
+  const glowRef = useRef<THREE.Mesh>(null!)
+  useFrame(({ clock }) => {
+    if (glowRef.current) {
+      glowRef.current.scale.setScalar(1 + Math.sin(clock.elapsedTime) * 0.1)
+    }
+  })
+  return (
+    <mesh ref={glowRef} position={[0, 0.2, 0]}>
+      <sphereGeometry args={[4, 32, 32]} />
+      <meshBasicMaterial color="#00ffaa" transparent opacity={0.03} side={THREE.BackSide} />
+    </mesh>
+  )
+}
+
 // Enhanced Solar Farm node
 function SolarFarmNode({ node, onClick }: { node: any, onClick: () => void }) {
   const meshRef = useRef<THREE.Group>(null!)
   const glowRef = useRef<THREE.Mesh>(null!)
-  const { selectedNodeId } = useSimStore()
+  const { selectedNodeId, theme } = useSimStore()
+  const accentColor = theme === 'dark' ? '#00ffaa' : '#f59e0b'
+  const labelColor = theme === 'dark' ? '#88ffcc' : '#1e293b'
   
   useFrame(({ clock }) => {
     if (glowRef.current) {
@@ -172,26 +214,28 @@ function SolarFarmNode({ node, onClick }: { node: any, onClick: () => void }) {
   return (
     <group ref={meshRef} position={node.position} onClick={onClick}>
       <SelectionRing active={isSelected} />
+      <NodeLevelBadge node={node} />
+      <EliteGlow level={node.level} />
       {/* Base Structure */}
       <Box args={[3.8, 0.2, 2.8]} position={[0, 0.1, 0]}>
-        <meshStandardMaterial color="#111" metalness={0.9} roughness={0.1} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.2} />
       </Box>
-      <Cylinder args={[0.05, 0.05, 0.4]} position={[1.5, 0.2, 1]}><meshStandardMaterial color="#444" /></Cylinder>
-      <Cylinder args={[0.05, 0.05, 0.4]} position={[-1.5, 0.2, 1]}><meshStandardMaterial color="#444" /></Cylinder>
+      <Cylinder args={[0.05, 0.05, 0.4]} position={[1.5, 0.2, 1]}><meshStandardMaterial color="#888" /></Cylinder>
+      <Cylinder args={[0.05, 0.05, 0.4]} position={[-1.5, 0.2, 1]}><meshStandardMaterial color="#888" /></Cylinder>
       
       {Array.from({ length: 3 }).map((_, i) =>
         Array.from({ length: 2 }).map((_, j) => (
           <group key={`${i}-${j}`} position={[-1 + i * 1.0, 0.45, -0.5 + j * 1.0]} rotation={[-Math.PI / 6, 0, 0]}>
             <Box args={[0.9, 0.05, 0.75]}>
               <meshStandardMaterial
-                color={node.active ? '#001a33' : '#111'}
-                emissive={node.active ? '#004488' : '#000'}
-                emissiveIntensity={node.active ? 2 : 0}
+                color={node.active ? '#003366' : '#222'}
+                emissive={node.active ? '#0088ff' : '#000'}
+                emissiveIntensity={node.active ? 4 : 0}
                 metalness={1} roughness={0}
               />
             </Box>
             {/* Grid lines on panels */}
-            <Box args={[0.92, 0.01, 0.01]} position={[0, 0.03, 0]}><meshBasicMaterial color="#00ffaa" opacity={0.1} transparent /></Box>
+            <Box args={[0.92, 0.01, 0.01]} position={[0, 0.03, 0]}><meshBasicMaterial color="#00ffff" opacity={0.3} transparent /></Box>
           </group>
         ))
       )}
@@ -199,10 +243,10 @@ function SolarFarmNode({ node, onClick }: { node: any, onClick: () => void }) {
         <sphereGeometry args={[0.3, 16, 16]} />
         <meshBasicMaterial color={node.active ? healthColor : '#333'} transparent opacity={0.9} />
       </mesh>
-      <Text position={[0, 2.2, 0]} fontSize={0.35} color="#88ffcc" anchorX="center">
+      <Text position={[0, 2.2, 0]} fontSize={0.35} color={labelColor} anchorX="center">
         {node.label}
       </Text>
-      <Text position={[0, 1.75, 0]} fontSize={0.28} color="#00ffaa" anchorX="center">
+      <Text position={[0, 1.75, 0]} fontSize={0.28} color={accentColor} anchorX="center">
         {node.active ? `${Math.round(node.production)} kWh` : 'OFFLINE'}
       </Text>
     </group>
@@ -211,6 +255,9 @@ function SolarFarmNode({ node, onClick }: { node: any, onClick: () => void }) {
 
 // Wind Turbine node
 function WindNode({ node, onClick }: { node: any, onClick: () => void }) {
+  const { theme } = useSimStore()
+  const accentColor = theme === 'dark' ? '#00ffaa' : '#f59e0b'
+  const labelColor = theme === 'dark' ? '#88ffcc' : '#1e293b'
   const bladeRef = useRef<THREE.Group>(null!)
   useFrame(({ clock }) => {
     if (bladeRef.current && node.active) {
@@ -219,47 +266,59 @@ function WindNode({ node, onClick }: { node: any, onClick: () => void }) {
   })
   return (
     <group position={node.position} onClick={onClick}>
+      <NodeLevelBadge node={node} />
+      <EliteGlow level={node.level} />
       <Cylinder args={[0.08, 0.12, 3, 8]} position={[0, 1.5, 0]}>
-        <meshStandardMaterial color="#1a2a20" metalness={0.7} roughness={0.4} />
+        <meshStandardMaterial color="#888" metalness={0.8} roughness={0.2} />
       </Cylinder>
       <group ref={bladeRef} position={[0, 3, 0]}>
         {[0, 120, 240].map((deg) => (
           <group key={deg} rotation={[0, 0, (deg * Math.PI) / 180]}>
             <Box args={[0.08, 1.4, 0.04]} position={[0, 0.7, 0]}>
-              <meshStandardMaterial color="#0d1f18" metalness={0.5} roughness={0.5} />
+              <meshStandardMaterial 
+                color={node.active ? "#00ffaa" : "#444"} 
+                emissive={node.active ? "#00ffaa" : "#000"}
+                emissiveIntensity={node.active ? 2 : 0}
+                metalness={0.5} roughness={0.5} 
+              />
             </Box>
           </group>
         ))}
         <Sphere args={[0.18, 8, 8]}>
-          <meshStandardMaterial color="#0a3020" metalness={0.8} />
+          <meshStandardMaterial color="#fff" metalness={0.8} emissive="#00ffaa" emissiveIntensity={node.active ? 1 : 0} />
         </Sphere>
       </group>
-      <Text position={[0, 4.2, 0]} fontSize={0.35} color="#88ffcc" anchorX="center">{node.label}</Text>
-      <Text position={[0, 3.7, 0]} fontSize={0.28} color="#00ffaa" anchorX="center">{Math.round(node.production)} kWh</Text>
+      <Text position={[0, 4.2, 0]} fontSize={0.35} color={labelColor} anchorX="center">{node.label}</Text>
+      <Text position={[0, 3.7, 0]} fontSize={0.28} color={accentColor} anchorX="center">{Math.round(node.production)} kWh</Text>
     </group>
   )
 }
 
 // Battery node
 function BatteryNode({ node, onClick }: { node: any, onClick: () => void }) {
-  const { gridEnergy } = useSimStore()
+  const { gridEnergy, theme } = useSimStore()
+  const accentColor = theme === 'dark' ? '#00ffaa' : '#f59e0b'
+  const labelColor = theme === 'dark' ? '#88ffcc' : '#1e293b'
   const chargeLevel = Math.min(1, gridEnergy / 2000)
   return (
     <group position={node.position} onClick={onClick}>
+      <NodeLevelBadge node={node} />
+      <EliteGlow level={node.level} />
       <Box args={[2, 1.5, 1.2]} position={[0, 0.75, 0]}>
         <meshStandardMaterial color="#0c1f18" metalness={0.6} roughness={0.4} />
       </Box>
       <Box args={[1.6 * chargeLevel, 0.25, 0.9]} position={[-0.8 + 0.8 * chargeLevel, 0.4, 0.65]}>
         <meshBasicMaterial color={chargeLevel > 0.5 ? '#00ffaa' : '#ffaa00'} />
       </Box>
-      <Text position={[0, 2, 0]} fontSize={0.35} color="#88ffcc" anchorX="center">{node.label}</Text>
-      <Text position={[0, 1.55, 0]} fontSize={0.28} color="#00ffaa" anchorX="center">{Math.round(chargeLevel * 100)}% charged</Text>
+      <Text position={[0, 2, 0]} fontSize={0.35} color={labelColor} anchorX="center">{node.label}</Text>
+      <Text position={[0, 1.55, 0]} fontSize={0.28} color={accentColor} anchorX="center">{Math.round(chargeLevel * 100)}% charged</Text>
     </group>
   )
 }
 
 // Marketplace node
 function MarketplaceNode({ node, onClick }: { node: any, onClick: () => void }) {
+  const { theme } = useSimStore()
   const ringRef = useRef<THREE.Mesh>(null!)
   useFrame(({ clock }) => {
     if (ringRef.current) {
@@ -279,21 +338,90 @@ function MarketplaceNode({ node, onClick }: { node: any, onClick: () => void }) 
       <Sphere args={[0.4, 16, 16]} position={[0, 1.5, 0]}>
         <meshBasicMaterial color="#ff6600" transparent opacity={0.6} />
       </Sphere>
-      <Text position={[0, 2.6, 0]} fontSize={0.35} color="#ffaa44" anchorX="center">{node.label}</Text>
-      <Text position={[0, 2.15, 0]} fontSize={0.28} color="#ff8800" anchorX="center">LIVE TRADING</Text>
+      <Text position={[0, 2.6, 0]} fontSize={0.35} color={theme === 'dark' ? '#ffaa44' : '#ea580c'} anchorX="center">{node.label}</Text>
+      <Text position={[0, 2.15, 0]} fontSize={0.28} color={theme === 'dark' ? '#ff8800' : '#8b4513'} anchorX="center">LIVE TRADING</Text>
+    </group>
+  )
+}
+
+function Bubble({ index }: { index: number }) {
+  const ref = useRef<THREE.Mesh>(null!)
+  const pos = useMemo(() => [
+    (Math.random() - 0.5) * 2,
+    0.5 + Math.random() * 1.0,
+    (Math.random() - 0.5) * 2
+  ] as [number, number, number], [])
+
+  useFrame(({ clock }) => {
+    if (ref.current) {
+      ref.current.position.y = pos[1] + Math.sin(clock.elapsedTime * 2 + index) * 0.2
+      ref.current.scale.setScalar(0.1 + Math.sin(clock.elapsedTime * 4 + index) * 0.05)
+    }
+  })
+
+  return (
+    <mesh ref={ref} position={pos}>
+      <sphereGeometry args={[1, 8, 8]} />
+      <meshBasicMaterial color="#a0f080" transparent opacity={0.6} />
+    </mesh>
+  )
+}
+
+// Biogas Node component
+function BiogasNode({ node, onClick }: { node: any, onClick: () => void }) {
+  const bulbRef = useRef<THREE.Mesh>(null!)
+  const { userNodeId, theme } = useSimStore()
+  const isUser = node.id === userNodeId
+  const labelColor = theme === 'dark' ? '#88ffcc' : '#1e293b'
+
+  useFrame(({ clock }) => {
+    if (bulbRef.current) {
+        bulbRef.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 3) * 0.1)
+    }
+  })
+
+  return (
+    <group position={node.position} onClick={onClick}>
+      <SelectionRing active={isUser} />
+      <NodeLevelBadge node={node} />
+      <EliteGlow level={node.level} />
+      <Cylinder args={[1.5, 1.8, 0.6, 32]} position={[0, 0.3, 0]}>
+        <meshStandardMaterial color="#2d3f20" metalness={0.6} roughness={0.4} />
+      </Cylinder>
+      <mesh position={[0, 0.6, 0]}>
+        <sphereGeometry args={[1.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#4ade80" transparent opacity={0.4} metalness={0.8} roughness={0.1} />
+      </mesh>
+      
+      {/* Bubbling Particles */}
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Bubble key={i} index={i} />
+      ))}
+      
+      <mesh ref={bulbRef} position={[0, 1.2, 0]}>
+        <sphereGeometry args={[0.3, 16, 16]} />
+        <meshBasicMaterial color="#a0f080" />
+      </mesh>
+      <Text position={[0, 2.6, 0]} fontSize={0.35} color={isUser ? (theme === 'dark' ? "#ffcc00" : "#d97706") : labelColor} anchorX="center">
+        {isUser ? `⭐ ${node.label.toUpperCase()}` : node.label}
+      </Text>
+      <Text position={[0, 2.15, 0]} fontSize={0.25} color="#4ade80" anchorX="center">{Math.round(node.production)} kWh</Text>
     </group>
   )
 }
 
 // Enhanced House node with Night Windows
 function HouseNode({ node, onClick }: { node: any, onClick: () => void }) {
-  const { dayState, selectedNodeId } = useSimStore()
+  const { dayState, selectedNodeId, theme } = useSimStore()
+  const labelColor = theme === 'dark' ? '#88ffcc' : '#1e293b'
   const isNight = dayState === 'NIGHT'
   const isSelected = selectedNodeId === node.id
 
   return (
     <group position={node.position} onClick={onClick}>
       <SelectionRing active={isSelected} />
+      <NodeLevelBadge node={node} />
+      <EliteGlow level={node.level} />
       {/* Main Body */}
       <Box args={[1.6, 1.2, 1.4]} position={[0, 0.6, 0]}>
         <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
@@ -315,7 +443,7 @@ function HouseNode({ node, onClick }: { node: any, onClick: () => void }) {
         </mesh>
       ))}
       {isNight && <pointLight color="#ffaa00" intensity={1.5} distance={4} position={[0, 0.7, 0]} />}
-      <Text position={[0, 2.4, 0]} fontSize={0.3} color="#88ccaa" anchorX="center">{node.label}</Text>
+      <Text position={[0, 2.4, 0]} fontSize={0.3} color={labelColor} anchorX="center">{node.label}</Text>
       <Text position={[0, 2.0, 0]} fontSize={0.25} color="#cc4444" anchorX="center">{Math.abs(node.production)} kWh consumed</Text>
     </group>
   )
@@ -324,12 +452,19 @@ function HouseNode({ node, onClick }: { node: any, onClick: () => void }) {
 import { WeatherLayer } from './WeatherLayer'
 
 export function MacroScene() {
-  const { nodes, setZoomLevel, selectNode, tick, timeOfDay } = useSimStore()
+  const { nodes, setZoomLevel, selectNode, tick, timeOfDay, theme } = useSimStore()
   
   // Day/Night lighting logic
   const solarFactor = Math.max(0, Math.sin((timeOfDay - 6) / 12 * Math.PI))
-  const skyColor = new THREE.Color().setHSL(0.5, 0.5, 0.05 + 0.1 * solarFactor)
+  
+  const skyColor = theme === 'dark'
+    ? new THREE.Color().setHSL(0.5, 0.5, 0.05 + 0.1 * solarFactor)
+    : new THREE.Color('#f8fafc')
+    
   const sunIntensity = 0.2 + 0.8 * solarFactor
+  const accentColor = theme === 'dark' ? '#00ffaa' : '#f59e0b'
+  const secondaryAccent = theme === 'dark' ? '#0ea5e9' : '#ea580c'
+  const labelColor = theme === 'dark' ? '#88ffcc' : '#1e293b'
 
   useFrame(({ clock }, delta) => tick(delta, clock.elapsedTime))
 
@@ -353,20 +488,22 @@ export function MacroScene() {
         if (node.type === 'battery') return <BatteryNode {...props} />
         if (node.type === 'marketplace') return <MarketplaceNode {...props} />
         if (node.type === 'house') return <HouseNode {...props} />
+        if (node.type === 'biogas') return <BiogasNode {...props} />
         return null
       })}
 
       <EnergyPackets nodes={nodes} />
 
       <fog attach="fog" args={[skyColor.getStyle(), 30, 80]} />
-      <ambientLight intensity={0.1 + 0.2 * solarFactor} color="#88ffcc" />
+      <ambientLight intensity={theme === 'dark' ? (0.4 + 0.3 * solarFactor) : 0.8} color={theme === 'dark' ? "#b3ffe0" : "#fff"} />
       <directionalLight 
         position={[20, 30 * solarFactor, 10]} 
-        intensity={sunIntensity} 
-        color="#fff4cc" 
+        intensity={ sunIntensity * (theme === 'dark' ? 1.5 : 1.0) } 
+        color={theme === 'dark' ? "#fff4cc" : "#fff"} 
         castShadow 
       />
-      <pointLight position={[2, 5, 14]} intensity={2 * (1 - solarFactor * 0.5)} color="#ff6600" distance={15} />
+      <pointLight position={[0, 10, 0]} intensity={1.5 * (1 - solarFactor)} color={accentColor} distance={50} />
+      <pointLight position={[2, 5, 14]} intensity={2 * (1 - solarFactor * 0.5)} color={secondaryAccent} distance={15} />
     </group>
   )
 }

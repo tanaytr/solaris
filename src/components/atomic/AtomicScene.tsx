@@ -346,7 +346,11 @@ function SiliconLattice() {
 }
 
 export function AtomicScene() {
-  const { photonRate, electronFlux, atomicMode, bandgapVoltage } = useSimStore()
+  const { photonRate, electronFlux, atomicMode, bandgapVoltage, theme } = useSimStore()
+
+  const fogColor = theme === 'dark' ? '#000508' : '#f8fafc'
+  const labelColor = theme === 'dark' ? '#88ffcc' : '#1e293b'
+  const accentLevelColor = theme === 'dark' ? '#00ffcc' : '#0f172a'
 
   return (
     <group>
@@ -369,29 +373,42 @@ export function AtomicScene() {
       <group position={[0, -1, 0]}>
         <mesh rotation={[0, 0, -Math.PI / 2]}>
           <cylinderGeometry args={[0.04, 0.04, 3, 8]} />
-          <meshBasicMaterial color="#ffaa00" transparent opacity={0.6} />
+          <meshBasicMaterial color={theme === 'dark' ? "#ffaa00" : "#d97706"} transparent opacity={0.6} />
         </mesh>
         <mesh position={[1.7, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
           <coneGeometry args={[0.1, 0.3, 8]} />
-          <meshBasicMaterial color="#ffaa00" />
+          <meshBasicMaterial color={theme === 'dark' ? "#ffaa00" : "#d97706"} />
         </mesh>
-        <Text position={[0, -0.4, 0]} fontSize={0.3} color="#ffaa00" anchorX="center">Electric Field →</Text>
+        <Text position={[0, -0.4, 0]} fontSize={0.3} color={theme === 'dark' ? '#ffaa00' : '#92400e'} anchorX="center">Electric Field →</Text>
       </group>
 
       {/* Info labels */}
-      <Text position={[0, 4, 0]} fontSize={0.45} color="#00ffcc" anchorX="center">
-        SILICON LATTICE — PHOTOVOLTAIC EFFECT
+      <Text 
+        position={[0, 6, 0]} 
+        fontSize={0.4} 
+        color={labelColor} 
+        anchorX="center"
+      >
+        {atomicMode.toUpperCase()}_LATTICE
       </Text>
-      <Text position={[0, 3.4, 0]} fontSize={0.25} color="#44aa88" anchorX="center">
+      <Text 
+        position={[0, 5.5, 0]} 
+        fontSize={0.2} 
+        color={accentLevelColor} 
+        anchorX="center"
+      >
+        QUANTUM_PHASE_ACTIVE
+      </Text>
+      <Text position={[0, 5.1, 0]} fontSize={0.25} color={theme === 'dark' ? '#aaaaaa' : '#475569'} anchorX="center">
         Bandgap: {bandgapVoltage.toFixed(2)} eV • Photon flux: {Math.round(photonRate * 100)}%
       </Text>
 
-      <fog attach="fog" args={['#000508', 10, 30]} />
-      <ambientLight intensity={0.15} color="#001020" />
-      <directionalLight position={[0, 10, 0]} intensity={0.4} color="#ffff88" />
-      <pointLight position={[-3, 2, 0]} intensity={3} color="#0044ff" distance={10} />
-      <pointLight position={[3, 2, 0]} intensity={3} color="#ff0044" distance={10} />
-      <pointLight position={[0, 5, 0]} intensity={2} color="#ffcc00" distance={15} />
+      <fog attach="fog" args={[fogColor, 10, 30]} />
+      <ambientLight intensity={theme === 'dark' ? 0.15 : 0.6} color={theme === 'dark' ? "#001020" : "#fff"} />
+      <directionalLight position={[0, 10, 0]} intensity={theme === 'dark' ? 0.4 : 1.0} color={theme === 'dark' ? "#ffff88" : "#fff"} />
+      <pointLight position={[-3, 2, 0]} intensity={3} color={theme === 'dark' ? "#0044ff" : "#ea580c"} distance={10} />
+      <pointLight position={[3, 2, 0]} intensity={3} color={theme === 'dark' ? "#ff0044" : "#f59e0b"} distance={10} />
+      <pointLight position={[0, 5, 0]} intensity={2} color={theme === 'dark' ? "#ffcc00" : "#f59e0b"} distance={15} />
     </group>
   )
 }

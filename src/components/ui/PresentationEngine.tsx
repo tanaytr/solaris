@@ -70,11 +70,28 @@ export const PresentationEngine: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className={`pres-main ${animating ? 'exit' : 'enter'}`} style={{ pointerEvents: 'all' }}>
+      <main className={`pres-main ${animating ? 'exit' : 'enter'} ${slides[currentSlide].isPitch ? 'pitch-mode' : ''}`} style={{ pointerEvents: 'all' }}>
         <div className="slide-content-wrap">
-          <h2 className="slide-title" style={{ textTransform: 'capitalize' }}>{slides[currentSlide].title.toLowerCase()}</h2>
-          <span className="slide-subtitle">{slides[currentSlide].subtitle}</span>
-          <div className="slide-body">
+          <div className="slide-title-group" style={{ textAlign: 'left', width: '100%' }}>
+            <h2 className="slide-title" style={{ 
+              textTransform: 'none', 
+              fontSize: '3rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              background: 'none',
+              WebkitTextFillColor: 'var(--text-main)'
+            }}>
+              <span style={{ color: 'var(--accent-primary)', opacity: 0.8 }}>{(currentSlide + 1).toString().padStart(2, '0')}</span>
+              <span style={{ opacity: 0.3 }}>|</span>
+              {slides[currentSlide].title}
+            </h2>
+            <div className="ppt-header-line" />
+            <span className="slide-subtitle" style={{ display: 'block', marginTop: '1rem', opacity: 0.5, letterSpacing: 2, fontWeight: 700 }}>
+              {slides[currentSlide].subtitle.toUpperCase()}
+            </span>
+          </div>
+          <div className="slide-body" style={{ marginTop: '3rem', width: '100%' }}>
             {slides[currentSlide].content(subStep)}
           </div>
         </div>

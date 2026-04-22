@@ -7,13 +7,15 @@ export type Theme = 'dark' | 'light'
 
 export interface EnergyNode {
   id: string
-  type: 'solar_farm' | 'house' | 'wind' | 'battery' | 'marketplace'
+  type: 'solar_farm' | 'house' | 'wind' | 'battery' | 'marketplace' | 'biogas'
   position: [number, number, number]
   label: string
   production: number // kWh
   health: number // 0-1
   temperature: number // Celsius
   active: boolean
+  level: number
+  investedXP: number
 }
 
 export interface EnergyPacket {
@@ -78,10 +80,17 @@ interface SimStore {
   theme: Theme
 
   currentView: 'landing' | 'presentation' | 'experience' | 'marketplace'
+  autoTradeEnabled: boolean
+  isLoggedIn: boolean
+  userNodeId: string | null
+  manualTradeMode: boolean
 
   // Actions
   setCurrentView: (view: 'landing' | 'presentation' | 'experience' | 'marketplace') => void
   setZoomLevel: (level: ZoomLevel) => void
+  toggleAutoTrade: () => void
+  setLoggedIn: (val: boolean) => void
+  setManualTradeMode: (val: boolean) => void
   selectNode: (id: string | null) => void
   selectComponent: (id: string | null) => void
   addPacket: (packet: EnergyPacket) => void
@@ -100,20 +109,23 @@ interface SimStore {
   setPhotonRate: (r: number) => void
   setAtomicMode: (mode: 'photovoltaic' | 'battery' | 'electron_flow') => void
   addWindTurbine: (position: [number, number, number]) => void
+  addUserNode: (data: Partial<EnergyNode>) => void
   toggleTheme: () => void
+  upgradeNode: (nodeId: string, amount: number) => void
   tick: (dt: number, elapsedTime: number) => void
 }
 
 
+
 const initialNodes: EnergyNode[] = [
-  { id: 'sf1', type: 'solar_farm', position: [-18, 0, -10], label: 'Solar Farm Alpha', production: 850, health: 0.95, temperature: 42, active: true },
-  { id: 'sf2', type: 'solar_farm', position: [-14, 0, 8], label: 'Solar Farm Beta', production: 620, health: 0.82, temperature: 48, active: true },
-  { id: 'w1', type: 'wind', position: [16, 0, -12], label: 'Wind Array Gamma', production: 420, health: 0.98, temperature: 28, active: true },
-  { id: 'bat1', type: 'battery', position: [0, 0, 0], label: 'Storage Hub', production: 200, health: 0.88, temperature: 35, active: true },
-  { id: 'mp', type: 'marketplace', position: [2, 0, 14], label: 'Energy Exchange', production: 0, health: 1.0, temperature: 22, active: true },
-  { id: 'h1', type: 'house', position: [10, 0, 8], label: 'Residential Block A', production: -180, health: 1.0, temperature: 24, active: true },
-  { id: 'h2', type: 'house', position: [14, 0, 2], label: 'Residential Block B', production: -140, health: 1.0, temperature: 24, active: true },
-  { id: 'h3', type: 'house', position: [-6, 0, 14], label: 'Industrial Zone', production: -380, health: 0.92, temperature: 30, active: true },
+  { id: 'sf1', type: 'solar_farm', position: [-18, 0, -10], label: 'Solar Farm Alpha', production: 850, health: 0.95, temperature: 42, active: true, level: 1, investedXP: 0 },
+  { id: 'sf2', type: 'solar_farm', position: [-14, 0, 8], label: 'Solar Farm Beta', production: 620, health: 0.82, temperature: 48, active: true, level: 1, investedXP: 0 },
+  { id: 'w1', type: 'wind', position: [16, 0, -12], label: 'Wind Array Gamma', production: 420, health: 0.98, temperature: 28, active: true, level: 1, investedXP: 0 },
+  { id: 'bat1', type: 'battery', position: [0, 0, 0], label: 'Storage Hub', production: 200, health: 0.88, temperature: 35, active: true, level: 1, investedXP: 0 },
+  { id: 'mp', type: 'marketplace', position: [2, 0, 14], label: 'Energy Exchange', production: 0, health: 1.0, temperature: 22, active: true, level: 1, investedXP: 0 },
+  { id: 'h1', type: 'house', position: [10, 0, 8], label: 'Residential Block A', production: -180, health: 1.0, temperature: 24, active: true, level: 1, investedXP: 0 },
+  { id: 'h2', type: 'house', position: [14, 0, 2], label: 'Residential Block B', production: -140, health: 1.0, temperature: 24, active: true, level: 1, investedXP: 0 },
+  { id: 'h3', type: 'house', position: [-6, 0, 14], label: 'Industrial Zone', production: -380, health: 0.92, temperature: 30, active: true, level: 1, investedXP: 0 },
 ]
 
 const initialComponents: MesoComponent[] = [
@@ -155,11 +167,38 @@ export const useSimStore = create<SimStore>()(
       theme: 'dark',
 
       currentView: 'landing',
+      autoTradeEnabled: false,
+      isLoggedIn: false,
+      userNodeId: null,
+      manualTradeMode: false,
 
       setCurrentView: (view) => set({ currentView: view }),
       setZoomLevel: (level) => set({ zoomLevel: level }),
+      toggleAutoTrade: () => set(s => ({ autoTradeEnabled: !s.autoTradeEnabled })),
+      setLoggedIn: (val) => set({ isLoggedIn: val }),
+      setManualTradeMode: (val) => set({ manualTradeMode: val }),
       selectNode: (id) => set({ selectedNodeId: id }),
       selectComponent: (id) => set({ selectedComponentId: id }),
+      addUserNode: (data) => {
+        const id = `user_${Date.now()}`
+        const newNode: EnergyNode = {
+          id,
+          type: data.type || 'solar_farm',
+          position: [0, 0, 4], // Prime central-ish position
+          label: data.label || 'User Facility',
+          production: data.production || 0,
+          health: 1.0,
+          temperature: 22,
+          active: true,
+          level: 1,
+          investedXP: 0
+        }
+        set(s => ({
+          nodes: [...s.nodes, newNode],
+          userNodeId: id,
+          selectedNodeId: id
+        }))
+      },
 
       addPacket: (packet) => set((s) => ({ packets: [...s.packets, packet] })),
       removePacket: (id) => set((s) => ({ packets: s.packets.filter((p) => p.id !== id) })),
@@ -234,38 +273,79 @@ export const useSimStore = create<SimStore>()(
           production: 200 + Math.random() * 300,
           health: 1.0,
           temperature: 25,
-          active: true
+          active: true,
+          level: 1,
+          investedXP: 0
         }
         set((s) => ({ nodes: [...s.nodes, newNode] }))
       },
 
       toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+      
+      upgradeNode: (nodeId, amount) => set((s) => {
+        if (s.xp < amount) return s
+        return {
+          xp: s.xp - amount,
+          nodes: s.nodes.map(n => n.id === nodeId ? { 
+            ...n, 
+            investedXP: n.investedXP + amount,
+            level: Math.floor((n.investedXP + amount) / 1000) + 1
+          } : n)
+        }
+      }),
 
-      tick: (dt, elapsedTime) => {
-        const { packets, timeOfDay, nodes } = get()
+    tick: (dt, elapsedTime) => {
+        const { packets, timeOfDay, nodes, autoTradeEnabled, executeTrade } = get()
         
-        // Clean up expired packets - identify all at once
+        // --- Mesh Network Auto-Trading Logic ---
+        // Every ~5 seconds, attempt to match supply and demand automatically
+        const lastTickGroup = Math.floor((elapsedTime - dt) / 5)
+        const currentTickGroup = Math.floor(elapsedTime / 5)
+        
+        if (autoTradeEnabled && currentTickGroup > lastTickGroup) {
+          const requesters = nodes.filter(n => n.active && n.production < 0)
+          const suppliers = nodes.filter(n => n.active && n.production > 100)
+          
+          if (requesters.length > 0 && suppliers.length > 0) {
+            const buyer = requesters[Math.floor(Math.random() * requesters.length)]
+            const seller = suppliers[Math.floor(Math.random() * suppliers.length)]
+            executeTrade(seller.id, buyer.id, 50, 0)
+          }
+        }
+
+        // --- Standard Simulation Updates ---
         const expiredIds = packets
           .filter(p => elapsedTime - p.startTime >= p.duration)
           .map(p => p.id)
 
-        // Accumulate CO2 offset based on clean production
         const cleanProd = nodes.reduce((acc, n) => (n.active && (n.type === 'solar_farm' || n.type === 'wind')) ? acc + n.production : acc, 0)
         const nextTimeOfDay = (timeOfDay + dt * 0.05) % 24
         
-        // Update dayState based on time
         let ds: DayState = 'DAY'
         if (nextTimeOfDay > 17 || nextTimeOfDay < 6) ds = 'NIGHT'
         else if (nextTimeOfDay > 16 || nextTimeOfDay < 7) ds = 'DUSK'
 
-        // Optimization: Only trigger a React update if packets changed OR every ~100ms for stats
         const shouldUpdateUI = Math.floor(elapsedTime * 10) !== Math.floor((elapsedTime - dt) * 10)
         const dayStateChanged = ds !== get().dayState
 
-        if (expiredIds.length > 0 || shouldUpdateUI || dayStateChanged) {
+        // --- Dividend Yield Calculation ---
+        // Every 2 seconds, calculate passive XP from invested nodes
+        const dividendPeriod = 2.0
+        const isDividendTick = Math.floor(elapsedTime / dividendPeriod) > Math.floor((elapsedTime - dt) / dividendPeriod)
+        let passiveXP = 0
+        if (isDividendTick) {
+          nodes.forEach(n => {
+            if (n.level > 1 || n.investedXP > 0) {
+              passiveXP += n.level * 0.5 // Award 0.5 XP per level every 2 seconds
+            }
+          })
+        }
+
+        if (expiredIds.length > 0 || shouldUpdateUI || dayStateChanged || passiveXP > 0) {
           set((s) => ({
             packets: expiredIds.length > 0 ? s.packets.filter(p => !expiredIds.includes(p.id)) : s.packets,
             co2Offset: s.co2Offset + (cleanProd / 3600) * dt * 0.5,
+            xp: s.xp + passiveXP,
             timeOfDay: nextTimeOfDay,
             dayState: ds
           }))
@@ -281,7 +361,9 @@ export const useSimStore = create<SimStore>()(
         co2Offset: state.co2Offset,
         panelTilt: state.panelTilt,
         soilingFactor: state.soilingFactor,
-        xp: state.xp
+        xp: state.xp,
+        isLoggedIn: state.isLoggedIn,
+        userNodeId: state.userNodeId
       }),
     }
   )

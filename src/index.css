@@ -1,2 +1,104 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body, #root { width: 100%; height: 100%; overflow: hidden; background: #000a06; }
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&family=Inter:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg-base: #020408;
+  --bg-surface: #0a0c10;
+  --text-main: #f1f5f9;
+  --accent-primary: #00ffaa;
+  --accent-secondary: #0ea5e9;
+  --accent-glow: rgba(0, 255, 170, 0.4);
+  --panel-bg: rgba(10, 15, 25, 0.85);
+  --border-ui: rgba(255, 255, 255, 0.1);
+  --nebula-glow: rgba(0, 255, 170, 0.08);
+}
+
+.theme-light {
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --text-main: #0f172a;
+  --accent-primary: #f59e0b;
+  --accent-secondary: #ea580c;
+  --accent-glow: rgba(245, 158, 11, 0.4);
+  --panel-bg: rgba(255, 255, 255, 0.9);
+  --border-ui: rgba(0, 0, 0, 0.08);
+  --nebula-glow: rgba(245, 158, 11, 0.05);
+}
+
+* { 
+  margin: 0; 
+  padding: 0; 
+  box-sizing: border-box; 
+}
+
+html, body, #root { 
+  width: 100%; 
+  height: 100%; 
+  overflow: hidden; 
+  background: var(--bg-base); 
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif; 
+  transition: background 0.8s ease-in-out, color 0.8s ease-in-out;
+}
+
+h1, h2, h3, h4, .outfit { 
+  font-family: 'Outfit', sans-serif; 
+}
+
+.mono { 
+  font-family: 'Space Mono', monospace; 
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--border-ui);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-ui);
+  border-radius: 10px;
+}
+
+input[type=range] { 
+  -webkit-appearance: none; 
+  appearance: none;
+  height: 3px; 
+  border-radius: 2px; 
+  background: var(--border-ui); 
+  outline: none; 
+}
+
+input[type=range]::-webkit-slider-thumb { 
+  -webkit-appearance: none; 
+  appearance: none;
+  width: 14px; 
+  height: 14px; 
+  border-radius: 50%; 
+  cursor: pointer; 
+  background: var(--accent-primary); 
+  border: 2px solid #fff; 
+  box-shadow: 0 0 10px var(--accent-primary); 
+}
+
+@keyframes rotate { 
+  from { transform: rotate(0deg); } 
+  to { transform: rotate(360deg); } 
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.nebula-spin { 
+  animation: rotate 240s linear infinite; 
+}

@@ -72,6 +72,7 @@ function PanelArray({ tilt, soiling, active }: { tilt: number, soiling: number, 
 
 // Inverter box
 function InverterBox({ load, health }: { load: number, health: number }) {
+  const { theme } = useSimStore()
   const ledRef = useRef<THREE.Mesh>(null!)
   useFrame(({ clock }) => {
     if (ledRef.current) {
@@ -97,28 +98,31 @@ function InverterBox({ load, health }: { load: number, health: number }) {
       <Box args={[0.08, 1.4 * load, 0.05]} position={[-0.3, 0.2 + 0.7 * load, 0.31]}>
         <meshBasicMaterial color={load > 0.8 ? '#ff4444' : '#00ffaa'} />
       </Box>
-      <Text position={[0, 2.1, 0]} fontSize={0.22} color="#88ffcc" anchorX="center">INVERTER</Text>
+      <Text position={[0, 2.1, 0]} fontSize={0.22} color={theme === 'dark' ? '#88ffcc' : '#1e293b'} anchorX="center">INVERTER</Text>
       <Text position={[0, 1.85, 0]} fontSize={0.18} color="#00ffaa" anchorX="center">{Math.round(load * 100)}% load</Text>
     </group>
   )
 }
 
-// Battery pack
 function BatteryPack({ charge }: { charge: number }) {
+  const { theme } = useSimStore()
+  const labelColor = theme === 'dark' ? '#88ffcc' : '#1e293b'
+  const barColor = theme === 'dark' ? '#00ffaa' : '#f59e0b'
+
   return (
     <group position={[-4, 0, 0]}>
       {Array.from({ length: 4 }).map((_, i) => (
         <group key={i} position={[0, 0, -0.6 + i * 0.4]}>
           <Box args={[1.0, 1.6, 0.32]} position={[0, 0.8, 0]}>
-            <meshStandardMaterial color="#0a1a10" metalness={0.7} roughness={0.4} />
+            <meshStandardMaterial color={theme === 'dark' ? "#0a1a10" : "#cbd5e1"} metalness={0.7} roughness={0.4} />
           </Box>
           <Box args={[0.7, 1.4 * charge, 0.34]} position={[0, 0.1 + 0.7 * charge, 0.01]}>
-            <meshBasicMaterial color={charge > 0.5 ? '#00dd88' : '#ffaa00'} transparent opacity={0.6} />
+            <meshBasicMaterial color={charge > 0.5 ? barColor : '#ffaa00'} transparent opacity={0.6} />
           </Box>
         </group>
       ))}
-      <Text position={[0, 2.2, 0]} fontSize={0.22} color="#88ffcc" anchorX="center">BATTERY PACK</Text>
-      <Text position={[0, 1.95, 0]} fontSize={0.18} color="#00ffaa" anchorX="center">{Math.round(charge * 100)}% SOC</Text>
+      <Text position={[0, 2.2, 0]} fontSize={0.22} color={labelColor} anchorX="center">BATTERY PACK</Text>
+      <Text position={[0, 1.95, 0]} fontSize={0.18} color={barColor} anchorX="center">{Math.round(charge * 100)}% SOC</Text>
     </group>
   )
 }
@@ -254,23 +258,27 @@ function ElectronCloud({ active, flux }: { active: boolean, flux: number }) {
 }
 
 export function MesoScene() {
-  const { panelTilt, soilingFactor, inverterLoad, gridEnergy, nodes, selectedNodeId } = useSimStore()
+  const { panelTilt, soilingFactor, inverterLoad, gridEnergy, nodes, selectedNodeId, theme } = useSimStore()
   const selectedNode = nodes.find(n => n.id === selectedNodeId)
   const charge = Math.min(1, gridEnergy / 2000)
   const active = selectedNode?.active ?? true
+
+  const fogColor = theme === 'dark' ? '#020a06' : '#f8fafc'
+  const labelColor = theme === 'dark' ? '#00ffaa' : '#1e293b'
+  const subLabelColor = theme === 'dark' ? '#44aa88' : '#64748b'
 
   return (
     <group>
       {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
         <planeGeometry args={[30, 30]} />
-        <meshStandardMaterial color="#040e08" />
+        <meshStandardMaterial color={theme === 'dark' ? "#040e08" : "#f1f5f9"} />
       </mesh>
 
       {/* Mounting structure */}
       {[-1.4, 0, 1.4].map((x, i) => (
         <Cylinder key={i} args={[0.06, 0.08, 1.2, 6]} position={[x, 0.6, 0.8]}>
-          <meshStandardMaterial color="#0a2015" metalness={0.8} />
+          <meshStandardMaterial color={theme === 'dark' ? "#0a2015" : "#94a3b8"} metalness={0.8} />
         </Cylinder>
       ))}
 
@@ -309,18 +317,18 @@ export function MesoScene() {
       <ElectronCloud active={active} flux={inverterLoad} />
 
       {/* Labels */}
-      <Text position={[0, 3.5, 0]} fontSize={0.4} color="#00ffaa" anchorX="center">
+      <Text position={[0, 3.5, 0]} fontSize={0.4} color={labelColor} anchorX="center">
         ASSET DETAIL VIEW
       </Text>
-      <Text position={[0, 3.0, 0]} fontSize={0.25} color="#44aa88" anchorX="center">
+      <Text position={[0, 3.0, 0]} fontSize={0.25} color={subLabelColor} anchorX="center">
         Click components • Drag sliders to control
       </Text>
 
-      <fog attach="fog" args={['#020a06', 15, 40]} />
-      <ambientLight intensity={0.2} color="#002211" />
-      <directionalLight position={[5, 10, 5]} intensity={0.6} color="#88ffcc" />
-      <pointLight position={[4, 2, 0]} intensity={3} color="#ff8800" distance={8} />
-      <pointLight position={[-4, 2, 0]} intensity={2} color="#0088ff" distance={8} />
+      <fog attach="fog" args={[fogColor, 15, 40]} />
+      <ambientLight intensity={theme === 'dark' ? 0.2 : 0.8} color={theme === 'dark' ? "#002211" : "#fff"} />
+      <directionalLight position={[5, 10, 5]} intensity={theme === 'dark' ? 0.6 : 1.0} color={theme === 'dark' ? "#88ffcc" : "#fff"} />
+      <pointLight position={[4, 2, 0]} intensity={3} color={theme === 'dark' ? "#ff8800" : "#f59e0b"} distance={8} />
+      <pointLight position={[-4, 2, 0]} intensity={2} color={theme === 'dark' ? "#0088ff" : "#ea580c"} distance={8} />
     </group>
   )
 }

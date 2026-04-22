@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Stars } from '@react-three/drei'
+import { Stars, OrbitControls } from '@react-three/drei'
 import { useSimStore } from './store/useSimStore'
 import { MacroScene } from './components/macro/MacroScene'
 import { MesoScene } from './components/meso/MesoScene'
@@ -16,6 +16,7 @@ import { OrientationLock } from './components/ui/OrientationLock'
 function SceneContent() {
   const zoomLevel = useSimStore(s => s.zoomLevel)
   const currentView = useSimStore(s => s.currentView)
+  const theme = useSimStore(s => s.theme)
 
   return (
     <>
@@ -28,10 +29,19 @@ function SceneContent() {
       )}
       
       <NavigationController />
+      <OrbitControls 
+        makeDefault 
+        enablePan={true} 
+        enableRotate={true}
+        enableZoom={true}
+        maxPolarAngle={Math.PI / 1.5}
+        minDistance={2}
+        maxDistance={100}
+      />
       <PostProcessing />
       
       {/* Animated Intergalactic Background */}
-      <group>
+      <group visible={theme === 'dark'}>
         <Stars 
           radius={300} 
           depth={60} 
@@ -52,8 +62,8 @@ function SceneContent() {
         />
       </group>
       
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} intensity={1} color="var(--accent-primary)" />
+      <ambientLight intensity={theme === 'dark' ? 0.5 : 1.2} />
+      <pointLight position={[10, 10, 10]} intensity={1.5} color={theme === 'dark' ? '#00ffaa' : '#f59e0b'} />
     </>
   )
 }
@@ -62,60 +72,11 @@ function App() {
   const cameraConfig = { position: [0, 20, 28] as [number, number, number], fov: 55 }
   const currentView = useSimStore(s => s.currentView)
   const theme = useSimStore(s => s.theme)
+  const marketplaceOpen = useSimStore(s => s.marketplaceOpen)
 
   return (
     <OrientationLock>
-      <div 
-        className={`app-root theme-${theme}`}
-        style={{ 
-          width: '100vw', height: '100vh', 
-          background: theme === 'dark' ? '#020408' : '#f8fafc', 
-          overflow: 'hidden', 
-          position: 'relative',
-          transition: 'background 0.8s ease-in-out'
-        }}
-      >
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&family=Inter:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap');
-          
-          :root {
-            --bg-base: #020408;
-            --text-main: #f1f5f9;
-            --accent-primary: #00ffaa;
-            --accent-secondary: #0ea5e9;
-            --panel-bg: rgba(10, 15, 25, 0.85);
-            --border-ui: rgba(255, 255, 255, 0.1);
-            --nebula-glow: rgba(0, 255, 170, 0.08);
-          }
-
-          .theme-light {
-            --bg-base: #f8fafc;
-            --text-main: #0f172a;
-            --accent-primary: #f59e0b;
-            --accent-secondary: #ea580c;
-            --panel-bg: rgba(255, 255, 255, 0.9);
-            --border-ui: rgba(0, 0, 0, 0.08);
-            --nebula-glow: rgba(245, 158, 11, 0.05);
-          }
-
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { 
-            background: var(--bg-base); 
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif; 
-            overflow: hidden;
-          }
-          
-          h1, h2, h3, h4, .outfit { font-family: 'Outfit', sans-serif; }
-          .mono { font-family: 'Space Mono', monospace; }
-
-          input[type=range] { -webkit-appearance: none; height: 3px; border-radius: 2px; background: var(--border-ui); outline: none; }
-          input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; cursor: pointer; background: var(--accent-primary); border: 2px solid #fff; box-shadow: 0 0 10px var(--accent-primary); }
-
-          @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-          .nebula-spin { animation: rotate 120s linear infinite; }
-        `}</style>
-
+      <div className={`app-root theme-${theme}`}>
         {/* Global Canvas Backdrop */}
         <Canvas
           camera={cameraConfig}
@@ -134,9 +95,11 @@ function App() {
           style={{
             position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%',
             pointerEvents: 'none', zIndex: 1,
-            background: `radial-gradient(circle at 50% 50%, var(--nebula-glow) 0%, transparent 50%),
-                         radial-gradient(circle at 30% 70%, rgba(14, 165, 233, 0.05) 0%, transparent 40%)`,
-            mixBlendMode: 'screen',
+            background: theme === 'dark' 
+              ? `radial-gradient(circle at 50% 50%, var(--nebula-glow) 0%, transparent 60%),
+                 radial-gradient(circle at 30% 70%, rgba(14, 165, 233, 0.05) 0%, transparent 40%)`
+              : `radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.1) 0%, transparent 70%)`,
+            mixBlendMode: theme === 'dark' ? 'screen' : 'multiply',
             opacity: theme === 'dark' ? 1 : 0.4
           }} 
         />
@@ -145,9 +108,15 @@ function App() {
         <div style={{ position: 'absolute', inset: 0, zIndex: 1000, pointerEvents: 'none' }}>
            {currentView === 'landing' && <div style={{ pointerEvents: 'all', width: '100%', height: '100%' }}><LandingPage /></div>}
            {currentView === 'experience' && <div style={{ width: '100%', height: '100%' }}><HUD /></div>}
-           {currentView === 'presentation' && <div style={{ width: '100%', height: '100%' }}><PresentationEngine /></div>}
-           {currentView === 'marketplace' && <div style={{ pointerEvents: 'all', width: '100%', height: '100%' }}><MarketplaceEngine /></div>}
+           {currentView === 'presentation' && <div style={{ pointerEvents: 'all', width: '100%', height: '100%' }}><PresentationEngine /></div>}
         </div>
+
+        {/* Global Marketplace Overlay */}
+        {marketplaceOpen && currentView === 'experience' && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 2000, pointerEvents: 'all' }}>
+            <MarketplaceEngine />
+          </div>
+        )}
 
         {/* Vignette Overlay */}
         <div style={{

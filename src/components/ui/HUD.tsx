@@ -48,6 +48,8 @@ function HeaderBar() {
   const xp = useSimStore(s => s.xp)
   const toggleTheme = useSimStore(s => s.toggleTheme)
   const setCurrentView = useSimStore(s => s.setCurrentView)
+  const marketplaceOpen = useSimStore(s => s.marketplaceOpen)
+  const toggleMarketplace = useSimStore(s => s.toggleMarketplace)
   
   const level = Math.floor(xp / 1000) + 1
 
@@ -82,8 +84,8 @@ function HeaderBar() {
         </div>
 
         <div style={{ display: 'flex', gap: 40, borderLeft: '1px solid var(--border-ui)', paddingLeft: 40, alignItems: 'center' }}>
-          <StatPill label="PLAYER_LEVEL" value={`LVL ${level}`} color="#0ea5e9" />
-          <StatPill label="EXPERIENCE" value={`${xp} XP`} color="#00ffaa" />
+          <StatPill label="PLAYER_LEVEL" value={`LVL ${level}`} color="var(--accent-secondary)" />
+          <StatPill label="EXPERIENCE" value={`${xp} XP`} color="var(--accent-primary)" />
           <StatItem label="CO2 REDUCTION" selector={s => `${Math.round(s.co2Offset)} kg`} color="var(--accent-primary)" />
           <GenerationDisplay />
           <SystemLoadDisplay />
@@ -93,6 +95,23 @@ function HeaderBar() {
 
 
       <div style={{ display: 'flex', gap: 16 }}>
+        <button 
+          onClick={toggleMarketplace}
+          style={{
+            background: marketplaceOpen ? 'rgba(0, 255, 170, 0.15)' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${marketplaceOpen ? 'var(--accent-primary)' : 'var(--border-ui)'}`,
+            color: marketplaceOpen ? 'var(--accent-primary)' : 'var(--text-main)',
+            height: 44, padding: '0 20px', borderRadius: 12,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+            fontSize: 10, fontWeight: 900, fontFamily: 'Space Mono', letterSpacing: 2,
+            backdropFilter: 'blur(10px)', transition: 'all 0.3s',
+            boxShadow: marketplaceOpen ? '0 0 20px rgba(0, 255, 170, 0.2)' : 'none'
+          }}
+        >
+          <span style={{ fontSize: 16 }}>📊</span>
+          MARKET_PROTOCOL
+        </button>
+
         <button 
           onClick={toggleTheme}
           style={{
@@ -141,7 +160,7 @@ function Slider({ label, value, min, max, step, unit, onChange, color = 'var(--a
 
 // ---- Node info panel ----
 function NodePanel({ node }: { node: EnergyNode }) {
-  const { toggleNode, setZoomLevel } = useSimStore()
+  const { toggleNode, setZoomLevel, theme } = useSimStore()
   const healthColor = node.health > 0.9 ? 'var(--accent-primary)' : node.health > 0.7 ? '#f59e0b' : '#ef4444'
   
   return (
@@ -158,11 +177,21 @@ function NodePanel({ node }: { node: EnergyNode }) {
         }} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
-        <StatPill label="Health Index" value={`${Math.round(node.health * 100)}%`} color={healthColor} />
-        <StatPill label="Active State" value={node.active ? 'ONLINE' : 'OFFLINE'} color={node.active ? 'var(--accent-primary)' : '#ef4444'} />
-        <StatPill label="Real-time Output" value={`${Math.abs(node.production)} kWh`} color="var(--accent-secondary)" />
-        <StatPill label="Asset Class" value={node.type.replace('_', ' ').toUpperCase()} color="var(--text-main)" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <StatPill label="Thermal Sync" value={`${node.temperature.toFixed(1)}°C`} color={node.temperature > 40 ? '#ef4444' : 'var(--accent-primary)'} />
+        <StatPill label="Voltage Drop" value="0.042 V" color="var(--accent-secondary)" />
+        <StatPill label="Packet Entropy" value="0.002" color="var(--accent-primary)" />
+        <StatPill label="Grid Displ." value="4.2mm" color="var(--accent-secondary)" />
+      </div>
+
+      <div style={{ background: 'rgba(255,255,255,0.02)', padding: 16, borderRadius: 12, border: '1px solid var(--border-ui)', marginBottom: 24 }}>
+         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 8, opacity: 0.4 }}>ASSET_EFFICIENCY_METRIC</span>
+            <span style={{ fontSize: 10, color: 'var(--accent-primary)', fontWeight: 800 }}>{Math.round(node.health * 100)}%</span>
+         </div>
+         <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+            <div style={{ height: '100%', width: `${node.health * 100}%`, background: 'var(--accent-primary)', boxShadow: '0 0 10px var(--accent-primary)' }} />
+         </div>
       </div>
 
       <div style={{ display: 'flex', gap: 12 }}>
@@ -171,7 +200,7 @@ function NodePanel({ node }: { node: EnergyNode }) {
           style={{
             flex: 1, padding: '14px 0', border: '1px solid var(--border-ui)',
             background: node.active ? 'rgba(255,255,255,0.03)' : 'var(--accent-primary)',
-            color: node.active ? 'var(--text-main)' : '#000',
+            color: node.active ? (theme === 'dark' ? '#000' : '#fff') : (theme === 'dark' ? '#000' : '#fff'),
             fontFamily: 'Outfit, sans-serif', fontSize: 11, cursor: 'pointer', borderRadius: 12, fontWeight: 700,
             transition: 'all 0.3s'
           }}
@@ -197,87 +226,99 @@ function NodePanel({ node }: { node: EnergyNode }) {
 }
 
 function MacroControls() {
-  const selectedNodeId = useSimStore(s => s.selectedNodeId)
-  const nodes = useSimStore(s => s.nodes)
-  const executeTrade = useSimStore(s => s.executeTrade)
-  const timeOfDay = useSimStore(s => s.timeOfDay)
-  const setTimeOfDay = useSimStore(s => s.setTimeOfDay)
-  const weatherIntensity = useSimStore(s => s.weatherIntensity)
-  const setWeatherIntensity = useSimStore(s => s.setWeatherIntensity)
+  const { 
+    selectedNodeId, nodes, timeOfDay, setTimeOfDay, 
+    weatherIntensity, setWeatherIntensity,
+    autoTradeEnabled, toggleAutoTrade 
+  } = useSimStore()
   
   const selectedNode = nodes.find(n => n.id === selectedNodeId)
-  const solarNodes = nodes.filter(n => n.type === 'solar_farm' && n.active)
-  const houseNodes = nodes.filter(n => n.type === 'house')
-
-  const handleTrade = () => {
-    if (solarNodes.length && houseNodes.length) {
-      const seller = solarNodes[Math.floor(Math.random() * solarNodes.length)]
-      const buyer = houseNodes[Math.floor(Math.random() * houseNodes.length)]
-      executeTrade(seller.id, buyer.id, Math.round(50 + Math.random() * 200), Math.round(20 + Math.random() * 80))
-    }
-  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {selectedNode ? (
         <NodePanel node={selectedNode} />
       ) : (
-        <div style={{ color: 'var(--text-main)', opacity: 0.3, fontFamily: 'Space Mono', fontSize: 11, textAlign: 'center', padding: '40px 20px', border: '1px dashed var(--border-ui)', borderRadius: 16 }}>
-          AWAITING_NODE_SELECTION...
+        <div style={{ padding: '40px 20px', border: '1px dashed var(--border-ui)', borderRadius: 16, textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-main)', opacity: 0.3, fontFamily: 'Space Mono', letterSpacing: 2 }}>AWAITING_TELEMETRY_LINK...</div>
         </div>
       )}
 
-      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '24px', borderRadius: 16, border: '1px solid var(--border-ui)' }}>
-        <Slider label="Time Cycle" value={parseFloat(timeOfDay.toFixed(1))} min={0} max={24} step={0.1} unit="h" onChange={setTimeOfDay} color="#f59e0b" />
-        <Slider label="Weather Intensity" value={Math.round(weatherIntensity * 100)} min={0} max={100} step={1} unit="%" onChange={(v) => setWeatherIntensity(v / 100)} color="var(--accent-secondary)" />
+      <div style={{ background: 'rgba(0,0,0,0.3)', padding: '24px', borderRadius: 20, border: '1px solid var(--border-ui)', borderLeft: '4px solid var(--accent-primary)' }}>
+        <div style={{ fontSize: 9, color: 'var(--accent-primary)', opacity: 0.6, fontFamily: 'Space Mono', letterSpacing: 2, marginBottom: 20, fontWeight: 800 }}>GLOBAL_COMMAND_OVERRIDE</div>
         
-        <button
-          onClick={handleTrade}
-          style={{
-            width: '100%', padding: '16px 0', marginTop: 12,
-            background: 'var(--accent-primary)', border: 'none', color: '#000', 
-            fontFamily: 'Outfit, sans-serif', fontSize: 12, cursor: 'pointer', borderRadius: 12, 
-            fontWeight: 800, transition: 'all 0.3s', boxShadow: '0 0 20px var(--accent-primary)'
-          }}
-        >
-          EXECUTE AMM TRADE
-        </button>
+        <Slider label="Temporal Phase" value={parseFloat(timeOfDay.toFixed(1))} min={0} max={24} step={0.1} unit="h" onChange={setTimeOfDay} color="#f59e0b" />
+        <Slider label="Atmos. Turbulence" value={Math.round(weatherIntensity * 100)} min={0} max={100} step={1} unit="%" onChange={(v) => setWeatherIntensity(v / 100)} color="var(--accent-secondary)" />
+        
+        <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
+           <button
+             onClick={toggleAutoTrade}
+             style={{
+               flex: 1, padding: '16px 0',
+               background: autoTradeEnabled ? 'var(--accent-primary)' : 'rgba(255,255,255,0.05)',
+               border: `1px solid ${autoTradeEnabled ? 'var(--accent-primary)' : 'var(--border-ui)'}`,
+               color: autoTradeEnabled ? '#000' : 'var(--text-main)', 
+               fontFamily: 'Outfit, sans-serif', fontSize: 11, cursor: 'pointer', borderRadius: 12, 
+               fontWeight: 900, transition: 'all 0.3s',
+               boxShadow: autoTradeEnabled ? '0 0 15px var(--accent-primary)' : 'none'
+             }}
+           >
+             {autoTradeEnabled ? 'AUTONOMOUS_ENABLED' : 'MANUAL_OVERRIDE'}
+           </button>
+        </div>
+      </div>
+
+      {/* Grid Inspector Gauges */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+         <div style={{ background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '1px solid var(--border-ui)' }}>
+            <div style={{ fontSize: 8, color: 'var(--text-main)', opacity: 0.4, marginBottom: 8 }}>GRID_FREQUENCY</div>
+            <div style={{ fontSize: 18, color: 'var(--accent-primary)', fontWeight: 800 }}>50.02 <span style={{ fontSize: 10 }}>Hz</span></div>
+         </div>
+         <div style={{ background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '1px solid var(--border-ui)' }}>
+            <div style={{ fontSize: 8, color: 'var(--text-main)', opacity: 0.4, marginBottom: 8 }}>VOLTAGE_STABILITY</div>
+            <div style={{ fontSize: 18, color: 'var(--accent-secondary)', fontWeight: 800 }}>99.9%</div>
+         </div>
       </div>
     </div>
   )
 }
 
 function MesoControls() {
-  const panelTilt = useSimStore(s => s.panelTilt)
-  const soilingFactor = useSimStore(s => s.soilingFactor)
-  const inverterLoad = useSimStore(s => s.inverterLoad)
-  const mesoComponents = useSimStore(s => s.mesoComponents)
-  const setPanelTilt = useSimStore(s => s.setPanelTilt)
-  const setSoilingFactor = useSimStore(s => s.setSoilingFactor)
-  const setInverterLoad = useSimStore(s => s.setInverterLoad)
-  const setZoomLevel = useSimStore(s => s.setZoomLevel)
+  const { 
+    panelTilt, setPanelTilt, soilingFactor, setSoilingFactor, 
+    inverterLoad, setInverterLoad, mesoComponents, setZoomLevel, theme
+  } = useSimStore()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <Slider label="Array Tilt Angle" value={panelTilt} min={0} max={90} step={1} unit="°" onChange={setPanelTilt} />
-      <Slider label="Accumulated Dust" value={Math.round(soilingFactor * 100)} min={0} max={100} step={1} unit="%" onChange={v => setSoilingFactor(v / 100)} color="#a8a29e" />
-      <Slider label="Inverter Load" value={Math.round(inverterLoad * 100)} min={0} max={100} step={1} unit="%" onChange={v => setInverterLoad(v / 100)} color={inverterLoad > 0.85 ? '#ef4444' : 'var(--accent-primary)'} />
+      <Slider label="Array Azimuth / Tilt" value={panelTilt} min={0} max={90} step={1} unit="°" onChange={setPanelTilt} />
+      <Slider label="Particulate Accumulation" value={Math.round(soilingFactor * 100)} min={0} max={100} step={1} unit="%" onChange={v => setSoilingFactor(v / 100)} color="#a8a29e" />
+      <Slider label="Harmonic Load Dist." value={Math.round(inverterLoad * 100)} min={0} max={100} step={1} unit="%" onChange={v => setInverterLoad(v / 100)} color={inverterLoad > 0.85 ? '#ef4444' : 'var(--accent-primary)'} />
 
       <div style={{ borderTop: '1px solid var(--border-ui)', paddingTop: 24 }}>
-        <div style={{ fontSize: 9, color: 'var(--accent-primary)', opacity: 0.6, fontFamily: 'Space Mono', letterSpacing: 2, marginBottom: 20, fontWeight: 700 }}>SUBSYSTEM_INTEGRITY</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ fontSize: 9, color: 'var(--accent-primary)', opacity: 0.6, fontFamily: 'Space Mono', letterSpacing: 2, marginBottom: 20, fontWeight: 700 }}>SUBSYSTEM_INTEGRITY_MATRIX</div>
+        <div style={{ display: 'grid', gap: 8 }}>
           {mesoComponents.map(comp => (
-            <div key={comp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid var(--border-ui)' }}>
-              <span style={{ fontSize: 11, color: 'var(--text-main)', fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>{comp.name}</span>
-              <span style={{ fontSize: 11, color: comp.health > 0.9 ? 'var(--accent-primary)' : '#f59e0b', fontFamily: 'Space Mono', fontWeight: 700 }}>{Math.round(comp.health * 100)}%</span>
+            <div key={comp.id} style={{ 
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+              padding: '12px 16px', background: 'rgba(255,255,255,0.02)', 
+              borderRadius: 12, border: '1px solid var(--border-ui)' 
+            }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--text-main)', fontWeight: 700 }}>{comp.name}</div>
+                <div style={{ fontSize: 8, color: 'var(--text-main)', opacity: 0.4 }}>{comp.voltage}V / {comp.current}A</div>
+              </div>
+              <div style={{ height: 4, width: 60, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+                 <div style={{ height: '100%', width: `${comp.health * 100}%`, background: comp.health > 0.9 ? 'var(--accent-primary)' : '#f59e0b' }} />
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-         <button onClick={() => setZoomLevel('macro')} style={{ flex: 1, padding: '14px 0', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-ui)', color: 'var(--text-main)', fontFamily: 'Outfit, sans-serif', fontSize: 11, cursor: 'pointer', borderRadius: 12, fontWeight: 700 }}>BACK_TO_GRID</button>
-         <button onClick={() => setZoomLevel('atomic')} style={{ flex: 1, padding: '14px 0', background: 'var(--accent-secondary)', border: 'none', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: 11, cursor: 'pointer', borderRadius: 12, fontWeight: 700, boxShadow: '0 0 15px var(--accent-secondary)' }}>GO ATOMIC</button>
+         <button onClick={() => setZoomLevel('macro')} style={{ flex: 1, padding: '16px 0', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-ui)', color: 'var(--text-main)', fontFamily: 'Outfit, sans-serif', fontSize: 11, cursor: 'pointer', borderRadius: 12, fontWeight: 900 }}>EXIT_DEEP_SYNC</button>
+         <button onClick={() => setZoomLevel('atomic')} style={{ flex: 1, padding: '16px 0', background: 'var(--accent-secondary)', border: 'none', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: 11, cursor: 'pointer', borderRadius: 12, fontWeight: 900, boxShadow: '0 0 20px var(--accent-secondary)' }}>QUANTUM_INIT</button>
       </div>
     </div>
   )
@@ -330,7 +371,7 @@ function AtomicControls() {
 function TradeLog() {
   const trades = useSimStore(s => s.trades)
   return (
-    <div style={{ position: 'absolute', bottom: 48, left: 48, width: 340, zIndex: 1000, pointerEvents: 'all' }}>
+    <div style={{ position: 'absolute', bottom: 48, right: 48, width: 340, zIndex: 1000, pointerEvents: 'all' }}>
       <div style={{ fontSize: 9, color: 'var(--accent-primary)', opacity: 0.6, fontFamily: 'Space Mono', letterSpacing: 2, marginBottom: 20, fontWeight: 800 }}>DEX_TRANSACTION_FEED</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 220, overflowY: 'auto', paddingRight: 10 }}>
         {trades.slice(0, 8).map(t => (
@@ -356,7 +397,7 @@ function TradeLog() {
       </div>
       <style>{`
         @keyframes slideIn {
-          from { transform: translateX(-20px); opacity: 0; }
+          from { transform: translateX(20px); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
         }
       `}</style>
@@ -375,7 +416,7 @@ function RightPanel() {
   return (
     <div style={{
       position: 'absolute', top: 120, right: 48, width: 380, zIndex: 1000,
-      background: 'rgba(15, 23, 42, 0.85)',
+      background: 'var(--panel-bg)',
       border: '1px solid var(--border-ui)',
       borderRadius: 24, padding: '32px 24px',
       backdropFilter: 'blur(30px)',
@@ -402,7 +443,7 @@ function ZoomHint() {
   }
   return (
     <div style={{
-      position: 'absolute', bottom: 48, left: '50%', transform: 'translateX(-50%)',
+      position: 'absolute', bottom: 120, left: '50%', transform: 'translateX(-50%)',
       fontFamily: 'Space Mono, sans-serif', fontSize: 10, color: 'var(--accent-primary)', opacity: 0.5,
       letterSpacing: 1, textAlign: 'center', zIndex: 1000, pointerEvents: 'none', fontWeight: 600,
       background: 'rgba(0,0,0,0.4)', padding: '10px 20px', borderRadius: '40px', backdropFilter: 'blur(5px)'
@@ -412,12 +453,90 @@ function ZoomHint() {
   )
 }
 
-export function HUD() {
+function TelemetryBuffer() {
+  const trades = useSimStore(s => s.trades)
+  const nodes = useSimStore(s => s.nodes)
+  const autoTradeEnabled = useSimStore(s => s.autoTradeEnabled)
+
   return (
-    <div className="hud-layer" style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div style={{ position: 'absolute', top: 120, left: 48, width: 300, zIndex: 1000, pointerEvents: 'none' }}>
+      <div style={{ fontSize: 9, color: 'var(--accent-primary)', opacity: 0.6, fontFamily: 'Space Mono', letterSpacing: 2, marginBottom: 20, fontWeight: 800 }}>LIVE_TELEMETRY_STREAM</div>
+      <div style={{ 
+        display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflowY: 'hidden', 
+        fontFamily: 'Space Mono', fontSize: 9, color: 'var(--text-main)', opacity: 0.7 
+      }}>
+        <div style={{ color: 'var(--accent-primary)', marginBottom: 4 }}>[SYS] KERNEL_LOAD: STABLE</div>
+        <div style={{ color: autoTradeEnabled ? 'var(--accent-primary)' : '#f59e0b', marginBottom: 4 }}>
+          [SYS] AUTONOMOUS_MODE: {autoTradeEnabled ? 'ACTIVE' : 'STANDBY'}
+        </div>
+        {trades.slice(0, 10).map((t, i) => (
+          <div key={t.id} style={{ animation: 'fadeTerminal 0.3s ease-out' }}>
+            <span style={{ color: 'var(--accent-secondary)' }}>[{new Date(t.timestamp).toLocaleTimeString([], {hour12: false})}]</span> 
+            {` TRD_MATCH: ${t.seller.split('_')[0].toUpperCase()} >> ${Math.round(t.amount)}kW >> ${t.buyer.split('_')[0].toUpperCase()}`}
+          </div>
+        ))}
+        {nodes.filter(n => !n.active).map(n => (
+          <div key={n.id} style={{ color: '#ef4444' }}>
+            [WARN] OFFLINE_ABERRATION: {n.label.toUpperCase()}
+          </div>
+        ))}
+      </div>
+      <style>{`
+        @keyframes fadeTerminal {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+function ViewSwitcher() {
+  const { zoomLevel, setZoomLevel } = useSimStore()
+  const levels = [
+    { id: 'macro', label: 'GRID', icon: '🌐' },
+    { id: 'meso', label: 'FACILITY', icon: '🏭' },
+    { id: 'atomic', label: 'QUANTUM', icon: '⚛️' }
+  ]
+
+  return (
+    <div style={{
+      position: 'absolute', bottom: 48, left: 48,
+      display: 'flex', gap: 12, zIndex: 1000, pointerEvents: 'all'
+    }}>
+      {levels.map(l => (
+        <button
+          key={l.id}
+          onClick={() => setZoomLevel(l.id as any)}
+          style={{
+            background: zoomLevel === l.id ? 'var(--accent-primary)' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${zoomLevel === l.id ? 'var(--accent-primary)' : 'var(--border-ui)'}`,
+            color: zoomLevel === l.id ? '#000' : 'var(--text-main)',
+            padding: '12px 20px', borderRadius: 14, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 10,
+            backdropFilter: 'blur(10px)', transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+            boxShadow: zoomLevel === l.id ? '0 0 20px var(--accent-glow)' : 'none'
+          }}
+        >
+          <span style={{ fontSize: 16 }}>{l.icon}</span>
+          <span className="outfit" style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>{l.label}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export function HUD() {
+  const currentView = useSimStore(s => s.currentView)
+  if (currentView !== 'experience') return null
+
+  return (
+    <div className="hud-layer" style={{ width: '100%', height: '100%', position: 'relative', pointerEvents: 'none' }}>
       <HeaderBar />
+      <TelemetryBuffer />
       <RightPanel />
       <TradeLog />
+      <ViewSwitcher />
       <ZoomHint />
     </div>
   )

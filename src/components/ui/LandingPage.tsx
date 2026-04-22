@@ -81,83 +81,54 @@ export const LandingPage: React.FC = () => {
           Bridging the physical and transactional layers of renewable energy. High-frequency telemetry meets decentralized P2P liquidity.
         </p>
 
-        <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button 
             onClick={() => setCurrentView('experience')}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             style={{
-              padding: '1.2rem 2.8rem',
-              fontSize: '1rem',
+              padding: '1.4rem 3.5rem',
+              fontSize: '1.1rem',
               background: 'var(--text-main)',
               color: 'var(--bg-base)',
               border: 'none',
-              borderRadius: '16px',
+              borderRadius: '20px',
               cursor: 'pointer',
               fontFamily: 'Outfit, sans-serif',
-              fontWeight: 700,
+              fontWeight: 900,
               transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-              boxShadow: hovered ? '0 20px 40px rgba(0,0,0,0.15)' : '0 10px 20px rgba(0,0,0,0.05)',
-              transform: hovered ? 'translateY(-6px) scale(1.05)' : 'none'
+              boxShadow: hovered ? '0 25px 50px rgba(0,0,0,0.3)' : '0 10px 20px rgba(0,0,0,0.1)',
+              transform: hovered ? 'translateY(-8px) scale(1.05)' : 'none'
             }}
           >
-            Enter Experience
-          </button>
-
-          <button 
-            onClick={() => setCurrentView('marketplace')}
-            style={{
-              padding: '1.2rem 2.8rem',
-              fontSize: '1rem',
-              background: 'var(--accent-secondary)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '16px',
-              cursor: 'pointer',
-              fontFamily: 'Outfit, sans-serif',
-              fontWeight: 700,
-              transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-              boxShadow: '0 10px 20px rgba(14, 165, 233, 0.2)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-6px) scale(1.05)'
-              e.currentTarget.style.boxShadow = '0 20px 40px rgba(14, 165, 233, 0.3)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'none'
-              e.currentTarget.style.boxShadow = '0 10px 20px rgba(14, 165, 233, 0.2)'
-            }}
-          >
-            Marketplace Engine
+            Enter EXPERIENCE
           </button>
           
           <button 
             onClick={() => setCurrentView('presentation')}
             style={{
-              padding: '1.2rem 2.8rem',
-              fontSize: '1rem',
+              padding: '1.4rem 3.5rem',
+              fontSize: '1.1rem',
               background: 'var(--panel-bg)',
               color: 'var(--text-main)',
               border: '1px solid var(--border-ui)',
-              borderRadius: '16px',
+              borderRadius: '20px',
               cursor: 'pointer',
               fontFamily: 'Outfit, sans-serif',
-              fontWeight: 600,
+              fontWeight: 700,
               transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
               backdropFilter: 'blur(10px)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-6px) scale(1.05)'
-              e.currentTarget.style.background = 'var(--text-main)'
-              e.currentTarget.style.color = 'var(--bg-base)'
+              e.currentTarget.style.transform = 'translateY(-8px) scale(1.05)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'none'
               e.currentTarget.style.background = 'var(--panel-bg)'
-              e.currentTarget.style.color = 'var(--text-main)'
             }}
           >
-            Technical Slides
+            Technical SLIDES
           </button>
         </div>
       </div>
